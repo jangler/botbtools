@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	id3 "github.com/mikkyang/id3-go"
+	id3 "github.com/bogem/id3v2"
 )
 
 type Entry struct {
@@ -59,8 +59,9 @@ func main() {
 			fmt.Fprintf(os.Stderr, "file '%s' does not exist!\n", arg)
 			continue
 		}
-		nicename := strings.Replace(
-			strings.SplitN(arg, " - ", 2)[1], ".mp3", "", -1)
+		nicename := strings.SplitN(arg, " - ", 2)[1]
+		nicename = nicename[:strings.Index(nicename, ".")]
+		println(nicename)
 
 		// make API requst
 		resp, err := http.Get(
@@ -99,5 +100,8 @@ func main() {
 		mp3file.SetAlbum(entry.Battle.Title)
 		mp3file.SetYear(entry.Datetime[:4])
 		mp3file.SetGenre(entry.Format.Title)
+		if err := mp3file.Save(); err != nil {
+			fmt.Fprintln(os.Stderr, "save error:", err)
+		}
 	}
 }
