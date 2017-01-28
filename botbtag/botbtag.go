@@ -27,20 +27,14 @@ type Entry struct {
 	Title string `json:"title"`
 }
 
-var overwrite bool
-
 func initFlag() {
-	flag.BoolVar(&overwrite, "o", false,
-		"overwrite existing tags (default: false)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr,
-			"Usage of %s: [options] file...\n", os.Args[0])
+			"Usage of %s: file...\n", os.Args[0])
 		fmt.Fprint(os.Stderr, `
 Attempts to look up and apply tag information from BotB to mp3s from
 BotB. The filename should be in the original format from the BotB
 donload.
-
-Options:
 `)
 		flag.PrintDefaults()
 	}
