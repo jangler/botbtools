@@ -41,6 +41,63 @@ donload.
 	flag.Parse()
 }
 
+func getEntryID(path string) (string, error) {
+	if _, err := os.Stat(path); err != nil {
+		return "", err
+	}
+	tokens := strings.Split(path, " ")
+	if len(tokens) < 3 {
+		return "", fmt.Errorf("bad filename: %s", path)
+	}
+	return tokens[1], nil
+}
+
+func loadEntry(id string) (*Entry, error) {
+	resp, err := http.Get(
+		"http://battleofthebits.org/api/v1/entry/load/" +
+		url.QueryEscape(id))
+	if err != nil {
+		return nil, err
+	}
+	var entry Entry
+	if err := json.NewDecoder(resp.Body).Decode(&entry); err != nil {
+		return nil, err
+	}
+	return &entry, nil
+}
+
+func tagFile(path string, entry *Entry) error {
+	mp3file, err := id3.Open(path)
+	if err != nil {
+		return err
+	}
+	defer mp3file.Close()
+	mp3file.SetTitle(entry.Title)
+	mp3file.SetArtist(entry.BotBr.Name)
+	mp3file.SetAlbum(entry.Battle.Title)
+	mp3file.SetYear(entry.Datetime[:4])
+	mp3file.SetGenre(entry.Format.Title)
+	if err := mp3file.Save(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func processFile(path string) error {
+	id, err := getEntryID(path)
+	if err != nil {
+		return err
+	}
+	entry, err := loadEntry(id)
+	if err != nil {
+		return err
+	}
+	if err := tagFile(path, entry); err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	initFlag()
 	if flag.NArg() < 1 {
@@ -48,54 +105,8 @@ func main() {
 	}
 
 	for _, arg := range flag.Args() {
-		// check file & parse filename
-		if _, err := os.Stat(arg); err != nil {
-			fmt.Fprintf(os.Stderr, "file '%s' does not exist!\n", arg)
-			continue
-		}
-		nicename := strings.SplitN(arg, " - ", 2)[1]
-		nicename = nicename[:strings.Index(nicename, ".")]
-		println(nicename)
-
-		// make API requst
-		resp, err := http.Get(
-			"http://battleofthebits.org/api/v1/entry/search/" +
-				url.QueryEscape(nicename) + "?page_length=1")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "api error:", err)
-			continue
-		}
-
-		// decode API response
-		var entries []Entry
-		if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
-			fmt.Fprintln(os.Stderr, "decoding error:", err)
-			fmt.Fprintln(os.Stderr, "probably BotB API is mad")
-			continue
-		}
-		if len(entries) == 0 {
-			fmt.Fprintln(os.Stderr, "no metadata found...")
-			continue
-		} else if len(entries) > 1 {
-			fmt.Fprintln(os.Stderr, "ambiguous thingy!")
-			continue
-		}
-		entry := entries[0]
-
-		// tag the file!
-		mp3file, err := id3.Open(arg)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "id3 open error:", err)
-			continue
-		}
-		defer mp3file.Close()
-		mp3file.SetTitle(entry.Title)
-		mp3file.SetArtist(entry.BotBr.Name)
-		mp3file.SetAlbum(entry.Battle.Title)
-		mp3file.SetYear(entry.Datetime[:4])
-		mp3file.SetGenre(entry.Format.Title)
-		if err := mp3file.Save(); err != nil {
-			fmt.Fprintln(os.Stderr, "save error:", err)
+		if err := processFile(arg); err != nil {
+			fmt.Fprintln(os.Stderr, err)
 		}
 	}
 }
