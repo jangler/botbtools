@@ -14,6 +14,7 @@ import (
 	id3 "github.com/bogem/id3v2"
 )
 
+// Entry contains tag-relevant data on an entry, provided by the BotB API.
 type Entry struct {
 	Battle struct {
 		Title string `json:"title"`
@@ -29,6 +30,7 @@ type Entry struct {
 	Title string `json:"title"`
 }
 
+// initFlag initializes and parses command-line flags.
 func initFlag() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr,
@@ -43,6 +45,7 @@ donload. Or the first number in it ought to at least be its ID.
 	flag.Parse()
 }
 
+// getEntryID returns the first int in a filename, if there is one.
 func getEntryID(path string) (int, error) {
 	if _, err := os.Stat(path); err != nil {
 		return 0, err
@@ -56,6 +59,7 @@ func getEntryID(path string) (int, error) {
 	return strconv.Atoi(nums[0])
 }
 
+// loadEntry retrieves entry data for the given entry ID using the BotB API.
 func loadEntry(id int) (*Entry, error) {
 	resp, err := http.Get(
 		"http://battleofthebits.org/api/v1/entry/load/" +
@@ -70,6 +74,7 @@ func loadEntry(id int) (*Entry, error) {
 	return &entry, nil
 }
 
+// tagFile applies tag information from an entry to a file at a given path.
 func tagFile(path string, entry *Entry) error {
 	mp3file, err := id3.Open(path)
 	if err != nil {
@@ -87,6 +92,7 @@ func tagFile(path string, entry *Entry) error {
 	return nil
 }
 
+// processFile executes the complete process of tagging a file.
 func processFile(path string) error {
 	id, err := getEntryID(path)
 	if err != nil {
@@ -102,6 +108,8 @@ func processFile(path string) error {
 	return nil
 }
 
+// main is the application entry point. It loops through the filenames provided
+// on the command line and attempts to tag each as a BotB entry.
 func main() {
 	initFlag()
 	if flag.NArg() < 1 {
