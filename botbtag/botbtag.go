@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 
 	id3 "github.com/bogem/id3v2"
@@ -34,28 +36,30 @@ func initFlag() {
 		fmt.Fprint(os.Stderr, `
 Attempts to look up and apply tag information from BotB to mp3s from
 BotB. The filename should be in the original format from the BotB
-donload.
+donload. Or the first number in it ought to at least be its ID.
 `)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
 }
 
-func getEntryID(path string) (string, error) {
+func getEntryID(path string) (int, error) {
 	if _, err := os.Stat(path); err != nil {
-		return "", err
+		return 0, err
 	}
-	tokens := strings.Split(path, " ")
-	if len(tokens) < 3 {
-		return "", fmt.Errorf("bad filename: %s", path)
+	nums := strings.FieldsFunc(filepath.Base(path), func(c rune) bool {
+		return c < '0' || c > '9'
+	})
+	if len(nums) == 0 {
+		return 0, fmt.Errorf("bad filename: %s", filepath.Base(path))
 	}
-	return tokens[1], nil
+	return strconv.Atoi(nums[0])
 }
 
-func loadEntry(id string) (*Entry, error) {
+func loadEntry(id int) (*Entry, error) {
 	resp, err := http.Get(
 		"http://battleofthebits.org/api/v1/entry/load/" +
-		url.QueryEscape(id))
+			url.QueryEscape(strconv.Itoa(id)))
 	if err != nil {
 		return nil, err
 	}
