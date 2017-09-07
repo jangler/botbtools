@@ -86,6 +86,8 @@ func tagFile(path string, entry *Entry) error {
 	mp3file.SetAlbum(entry.Battle.Title)
 	mp3file.SetYear(entry.Datetime[:4])
 	mp3file.SetGenre(entry.Format.Title)
+	mp3file.AddFrame("TRCK",
+		id3.TextFrame{Encoding: id3.EncodingUTF8, Text: entry.Id})
 	if err := mp3file.Save(); err != nil {
 		return err
 	}
