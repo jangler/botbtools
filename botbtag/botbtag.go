@@ -76,7 +76,7 @@ func loadEntry(id int) (*Entry, error) {
 
 // tagFile applies tag information from an entry to a file at a given path.
 func tagFile(path string, entry *Entry) error {
-	mp3file, err := id3.Open(path)
+	mp3file, err := id3.Open(path, id3.Options{true, nil})
 	if err != nil {
 		return err
 	}
